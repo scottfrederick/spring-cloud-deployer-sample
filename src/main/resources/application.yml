@@ -1,0 +1,16 @@
+
+---
+spring:
+  profiles: cloudfoundry
+  cloud:
+    deployer:
+      cloudfoundry:
+        url: ${CF_API}
+        username: ${CF_USERNAME}
+        password: ${CF_PASSWORD}
+        org: ${CF_ORG}
+        space: ${CF_SPACE}
+        skipSslValidation: true
+        enable-random-app-name-prefix: false
+
+
