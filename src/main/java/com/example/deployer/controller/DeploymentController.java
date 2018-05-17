@@ -1,61 +1,72 @@
 package com.example.deployer.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.deployer.executor.Executor;
 import org.springframework.cloud.deployer.spi.app.AppDeployer;
 import org.springframework.cloud.deployer.spi.core.AppDefinition;
 import org.springframework.cloud.deployer.spi.core.AppDeploymentRequest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/deployment")
 public class DeploymentController {
-
-	private static final Logger logger = LoggerFactory.getLogger(DeploymentController.class);
-
 	private AppDeployer appDeployer;
+	private Executor executor;
 
-	public DeploymentController(AppDeployer appDeployer) {
+	private List<String> deployedAppIds = new ArrayList<>();
+
+	public DeploymentController(AppDeployer appDeployer, Executor executor) {
 		this.appDeployer = appDeployer;
+		this.executor = executor;
 	}
 
 	@PutMapping
 	public String deploy(@RequestParam(required = false, defaultValue = "1") int count) {
-		runInParallel(count, this::deployGreeting);
+		executor.runInParallel(count, this::deployGreeting);
 		return "started deployment of " + count + " apps";
 	}
 
 	@DeleteMapping
-	public String undeploy(@RequestParam(required = false, defaultValue = "1") int count) {
-		runInParallel(count, this::undeployGreeting);
-		return "started undeployment of " + count + " apps";
+	public String undeploy() {
+		executor.runInParallel(deployedAppIds, this::undeployGreeting);
+		return "started undeployment of " + deployedAppIds.size() + " apps";
 	}
 
-	private void runInParallel(int count, Consumer<Integer> consumer) {
-		Flux.range(1, count)
-				.parallel(count)
-				.runOn(Schedulers.parallel())
-				.doOnTerminate(() -> logger.info("complete"))
-				.subscribe(consumer);
+	@GetMapping
+	public String status() {
+		return deployedAppIds.stream()
+				.sorted()
+				.map(this::buildStatusString)
+				.collect(Collectors.joining("\n"));
 	}
 
 	private void deployGreeting(Integer index) {
-		AppDefinition appDefinition = new AppDefinition("greeting" + index, null);
+		int offset = deployedAppIds.size() + index;
+
+		AppDefinition appDefinition = new AppDefinition("greeting" + offset, null);
 		ClassPathResource appResource = new ClassPathResource("/greeting.jar");
 		AppDeploymentRequest request = new AppDeploymentRequest(appDefinition, appResource);
-		appDeployer.deploy(request);
+		String appId = appDeployer.deploy(request);
+
+		deployedAppIds.add(appId);
 	}
 
-	private void undeployGreeting(Integer index) {
-		appDeployer.undeploy("greeting" + index);
+	private void undeployGreeting(String appId) {
+		appDeployer.undeploy(appId);
+
+		deployedAppIds.remove(appId);
+	}
+
+	private String buildStatusString(String appId) {
+		return appId + ": " + appDeployer.status(appId);
 	}
 }
