@@ -12,5 +12,3 @@ spring:
         space: ${CF_SPACE}
         skipSslValidation: true
         enable-random-app-name-prefix: false
-
-

@@ -1,7 +1,7 @@
 buildscript {
 	ext {
-//		springBootVersion = '2.0.2.RELEASE'
-		springBootVersion = '1.5.13.RELEASE'
+		springBootVersion = '2.0.2.RELEASE'
+//		springBootVersion = '1.5.13.RELEASE'
 	}
 	repositories {
 		mavenCentral()
@@ -27,6 +27,12 @@ repositories {
 
 ext {
 	reactorVersion = '3.1.5.RELEASE'
+	reactorNettyVersion = '0.7.5.RELEASE'
+
+//	webflux defaults; must be overridden for org.cloudfoundry:cloudfoundry-client-reactor:3.9.0.RELEASE
+//	reactorVersion = '3.1.7.RELEASE'
+//	reactorNettyVersion = '0.7.7.RELEASE'
+
 	deployerCFVersion = '1.4.0.RELEASE'
 	deployerK8sVersion = '1.3.4.RELEASE'
 }
@@ -37,6 +43,7 @@ dependencies {
 	compile("org.springframework.cloud:spring-cloud-deployer-cloudfoundry:${deployerCFVersion}")
 //	compile("org.springframework.cloud:spring-cloud-deployer-kubernetes:${deployerK8sVersion}")
 	compile("io.projectreactor:reactor-core:${reactorVersion}")
+	compile("io.projectreactor.ipc:reactor-netty:${reactorNettyVersion}")
 
 	testCompile("org.springframework.boot:spring-boot-starter-test")
 }
